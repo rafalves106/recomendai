@@ -161,6 +161,7 @@ for profile_type, names in PROFILE_NAME_POOLS.items():
 
 _CATEGORY_CACHE: dict[str, list[ProductModel]] = {}
 _ALL_PRODUCTS_CACHE: list[ProductModel] | None = None
+_PRODUCT_NAME_CACHE: dict[str, str] = {}
 
 
 def get_products_by_category(db, category: str) -> list[ProductModel]:
@@ -176,7 +177,10 @@ def get_products_by_category(db, category: str) -> list[ProductModel]:
     )
     products = list(db.scalars(statement).all())
     _CATEGORY_CACHE[category] = products
-    return products
+
+    for p in products:
+        _PRODUCT_NAME_CACHE[p.id] = p.name
+        return products
 
 
 def _get_all_in_stock_products(db) -> list[ProductModel]:
@@ -385,6 +389,7 @@ def run_batch_simulation(
     users: list[dict[str, str]],
     clear_existing: bool = False,
     verbose: bool = True,
+    delay: float = 0.0,
 ) -> int:
     """Generate historical events for all simulated users."""
     total_events = 0
@@ -417,6 +422,24 @@ def run_batch_simulation(
             db.add_all(session_events)
             user_events += len(session_events)
             total_events += len(session_events)
+
+            if verbose and delay > 0:
+                        for event in session_events:
+                            product_name = _PRODUCT_NAME_CACHE.get(
+                                event.product_id, event.product_id
+                            )
+                            emoji = {
+                                "view": "👁 ",
+                                "click": "🖱 ",
+                                "add_to_cart": "🛒",
+                                "purchase": "💰",
+                                "remove_from_cart": "❌",
+                            }.get(event.event_type, "⚡")
+                            print(
+                                f"  {emoji} {event.event_type:<20}"
+                                f" → {product_name[:35]}"
+                            )
+                            time.sleep(delay)
 
         if index % 10 == 0:
             db.commit()
@@ -473,6 +496,7 @@ def main() -> None:
     parser.add_argument("--clear", action="store_true")
     parser.add_argument("--interval", type=float, default=2.0)
     parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("--delay", type=float, default=0.0, help="Delay em segundos entre eventos (0=instantâneo, 0.05=lento, 0.2=bem devagar)",)
     args = parser.parse_args()
 
     init_db()
@@ -486,6 +510,7 @@ def main() -> None:
                 SIMULATED_USERS,
                 clear_existing=args.clear,
                 verbose=args.verbose,
+                delay=args.delay,
             )
             elapsed = time.time() - start_time
             print(f"✅ Simulação concluída em {elapsed:.1f}s")
