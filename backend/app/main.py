@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from app.database import DATABASE_URL, SessionLocal, init_db
+from app.routes.analytics import router as analytics_router
 from app.routes.events import router as events_router
 from app.routes.products import router as products_router
 from app.routes.recommendations import router as recommendations_router
@@ -51,6 +52,7 @@ app.include_router(products_router, prefix="/api")
 app.include_router(events_router, prefix="/api")
 app.include_router(recommendations_router, prefix="/api")
 app.include_router(simulation_router, prefix="/api")
+app.include_router(analytics_router, prefix="/api")
 
 
 @app.get("/")

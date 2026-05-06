@@ -37,6 +37,60 @@ export interface EventPayload {
   metadata?: Record<string, unknown>;
 }
 
+export interface FunnelStage {
+  stage: string;
+  count: number;
+  rate: number;
+  color: string;
+}
+
+export interface TopProduct {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  image_url: string;
+  views: number;
+  purchases: number;
+  cart_adds: number;
+  conversion_rate: number;
+}
+
+export interface DayStats {
+  date: string;
+  events: number;
+  purchases: number;
+}
+
+export interface CategoryStat {
+  category_id: string;
+  name: string;
+  color: string;
+  total_events: number;
+  views: number;
+  purchases: number;
+  conversion_rate: number;
+}
+
+export interface ProfileStat {
+  profile_type: string;
+  user_count: number;
+  total_events: number;
+  total_purchases: number;
+  avg_events_per_user: number;
+}
+
+export interface OverviewKPIs {
+  total_events: number;
+  total_purchases: number;
+  total_views: number;
+  unique_users: number;
+  conversion_rate: number;
+  ai_uplift: { base_rate: number; ai_rate: number };
+  top_category: string;
+  avg_session_depth: number;
+}
+
 // ─── Mapper snake_case → camelCase ───────────────────────────────────────────
 // A API Python retorna snake_case; o TypeScript espera camelCase.
 
@@ -354,6 +408,94 @@ export async function getSimulatedUsers(): Promise<SimulatedUser[]> {
     return response.data;
   } catch (error) {
     console.warn("API unavailable for simulated users", error);
+    return [];
+  }
+}
+
+// ─── Analytics ───────────────────────────────────────────────────────────────
+
+export async function fetchOverviewKPIs(): Promise<OverviewKPIs> {
+  try {
+    const response = await apiClient.get<OverviewKPIs>(
+      "/api/analytics/overview",
+    );
+    return response.data;
+  } catch (error) {
+    console.warn("API unavailable for overview KPIs", error);
+    return {
+      total_events: 0,
+      total_purchases: 0,
+      total_views: 0,
+      unique_users: 0,
+      conversion_rate: 0,
+      ai_uplift: { base_rate: 0, ai_rate: 0 },
+      top_category: "",
+      avg_session_depth: 0,
+    };
+  }
+}
+
+export async function fetchFunnel(): Promise<FunnelStage[]> {
+  try {
+    const response = await apiClient.get<FunnelStage[]>(
+      "/api/analytics/funnel",
+    );
+    return response.data;
+  } catch (error) {
+    console.warn("API unavailable for funnel", error);
+    return [];
+  }
+}
+
+export async function fetchTopProducts(params?: {
+  limit?: number;
+  metric?: string;
+}): Promise<TopProduct[]> {
+  try {
+    const response = await apiClient.get<TopProduct[]>(
+      "/api/analytics/top-products",
+      { params },
+    );
+    return response.data;
+  } catch (error) {
+    console.warn("API unavailable for top products", error);
+    return [];
+  }
+}
+
+export async function fetchEventsOverTime(days?: number): Promise<DayStats[]> {
+  try {
+    const response = await apiClient.get<DayStats[]>(
+      "/api/analytics/events-over-time",
+      { params: { days } },
+    );
+    return response.data;
+  } catch (error) {
+    console.warn("API unavailable for events over time", error);
+    return [];
+  }
+}
+
+export async function fetchCategoryStats(): Promise<CategoryStat[]> {
+  try {
+    const response = await apiClient.get<CategoryStat[]>(
+      "/api/analytics/category-stats",
+    );
+    return response.data;
+  } catch (error) {
+    console.warn("API unavailable for category stats", error);
+    return [];
+  }
+}
+
+export async function fetchUserProfileStats(): Promise<ProfileStat[]> {
+  try {
+    const response = await apiClient.get<ProfileStat[]>(
+      "/api/analytics/user-profiles",
+    );
+    return response.data;
+  } catch (error) {
+    console.warn("API unavailable for user profile stats", error);
     return [];
   }
 }
