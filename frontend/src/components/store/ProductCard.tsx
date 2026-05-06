@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { ShoppingCart, Star } from "lucide-react";
 import { cn } from "../../lib/cn";
 import useStore from "../../store";
@@ -31,14 +32,8 @@ export function ProductCard({
   );
 
   useEffect(() => {
-    if (!feedbackVisible) {
-      return undefined;
-    }
-
-    const timer = window.setTimeout(() => {
-      setFeedbackVisible(false);
-    }, 1500);
-
+    if (!feedbackVisible) return undefined;
+    const timer = window.setTimeout(() => setFeedbackVisible(false), 1500);
     return () => window.clearTimeout(timer);
   }, [feedbackVisible]);
 
@@ -53,11 +48,12 @@ export function ProductCard({
       )
     : 0;
 
-  const handleAddToCart = () => {
-    if (!product.inStock) {
-      return;
-    }
+  // ✅ Fix: formatação correta para pt-BR
+  const formatPrice = (value: number) =>
+    value.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
 
+  const handleAddToCart = () => {
+    if (!product.inStock) return;
     addToCart(product);
     onAddToCart?.(product);
     setFeedbackVisible(true);
@@ -70,40 +66,46 @@ export function ProductCard({
         className,
       )}
     >
-      <div className="relative">
-        <img
-          src={product.imageUrl}
-          alt={product.name}
-          className={cn(
-            "aspect-square w-full object-cover",
-            !product.inStock && "grayscale",
-          )}
-        />
+      {/* ✅ Fix: Link envolve imagem e título */}
+      <Link to={`/produto/${product.id}`} className="block">
+        <div className="relative">
+          <img
+            src={product.imageUrl}
+            alt={product.name}
+            className={cn(
+              "aspect-square w-full object-cover",
+              !product.inStock && "grayscale",
+            )}
+          />
 
-        <span className="absolute left-2 top-2 rounded-full bg-slate-900/80 px-3 py-1 text-xs font-medium text-slate-300">
-          {categoryName}
-        </span>
-
-        {showRecommendationBadge ? (
-          <span className="absolute right-2 top-2 rounded-full bg-indigo-500/90 px-2 py-1 text-xs font-semibold text-white">
-            ✨ Recomendado
+          <span className="absolute left-2 top-2 rounded-full bg-slate-900/80 px-3 py-1 text-xs font-medium text-slate-300">
+            {categoryName}
           </span>
-        ) : null}
 
-        {!product.inStock ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-slate-950/70">
-            <span className="rounded-full border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-200">
-              Fora de estoque
+          {showRecommendationBadge && (
+            <span className="absolute right-2 top-2 rounded-full bg-indigo-500/90 px-2 py-1 text-xs font-semibold text-white">
+              ✨ Recomendado
             </span>
-          </div>
-        ) : null}
-      </div>
+          )}
 
-      <div className="space-y-4 p-4">
-        <h3 className="line-clamp-2 text-base font-semibold text-white">
-          {product.name}
-        </h3>
+          {!product.inStock && (
+            <div className="absolute inset-0 flex items-center justify-center bg-slate-950/70">
+              <span className="rounded-full border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-200">
+                Fora de estoque
+              </span>
+            </div>
+          )}
+        </div>
 
+        <div className="px-4 pt-4">
+          <h3 className="line-clamp-2 text-base font-semibold text-white transition hover:text-indigo-300">
+            {product.name}
+          </h3>
+        </div>
+      </Link>
+
+      {/* Rating, preço e carrinho ficam fora do Link */}
+      <div className="space-y-4 p-4 pt-2">
         <div className="flex items-center gap-2 text-sm text-slate-400">
           <div className="flex items-center gap-0.5 text-amber-400">
             {ratingStars.map((filled, index) => (
@@ -117,19 +119,18 @@ export function ProductCard({
         </div>
 
         <div className="space-y-1">
-          {product.originalPrice ? (
+          {product.originalPrice && (
             <div className="flex items-center gap-2">
               <span className="text-sm text-slate-400 line-through">
-                R$ {product.originalPrice.toFixed(2).replace(".", ",")}
+                R$ {formatPrice(product.originalPrice)}
               </span>
               <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs font-semibold text-emerald-400">
                 -{discountPercent}%
               </span>
             </div>
-          ) : null}
-
+          )}
           <p className="text-xl font-bold text-white">
-            R$ {product.price.toFixed(2).replace(".", ",")}
+            R$ {formatPrice(product.price)}
           </p>
         </div>
 
@@ -148,13 +149,13 @@ export function ProductCard({
           {product.inStock ? "Adicionar ao carrinho" : "Indisponível"}
         </button>
 
-        {feedbackVisible ? (
-          <p className="text-xs font-medium text-cyan-400">Adicionado!</p>
-        ) : null}
+        {feedbackVisible && (
+          <p className="text-xs font-medium text-cyan-400">✓ Adicionado!</p>
+        )}
 
-        {recommendationReason ? (
+        {recommendationReason && (
           <p className="text-xs italic text-cyan-400">{recommendationReason}</p>
-        ) : null}
+        )}
       </div>
     </article>
   );

@@ -1,5 +1,5 @@
 import { Bot, LayoutDashboard, Package, Sparkles, Users } from "lucide-react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 
 const navItems = [
   { label: "Overview", to: "/admin", icon: LayoutDashboard },
@@ -25,10 +25,10 @@ export function AdminLayout() {
     <div className="flex min-h-screen bg-slate-950 text-slate-100">
       <aside className="flex w-[240px] flex-col border-r border-slate-800 bg-slate-900">
         <div className="border-b border-slate-800 px-6 py-6">
-          <a href="/" className="flex items-center gap-1 text-lg font-bold">
+          <Link to="/" className="flex items-center gap-1 text-lg font-bold">
             <span className="text-white">Recomenda</span>
             <span className="text-cyan-400">.AI</span>
-          </a>
+          </Link>
           <p className="mt-2 text-xs uppercase tracking-[0.24em] text-slate-400">
             Dashboard Admin
           </p>
