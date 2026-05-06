@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import random
 import sys
@@ -151,13 +150,11 @@ SIMULATED_USERS: list[dict[str, str]] = []
 for profile_type, names in PROFILE_NAME_POOLS.items():
     prefix = profile_type[:4]
     for index, name in enumerate(names, start=1):
-        SIMULATED_USERS.append(
-            {
-                "id": f"sim-user-{prefix}-{index:02d}",
-                "name": name,
-                "profile_type": profile_type,
-            }
-        )
+        SIMULATED_USERS.append({
+            "id": f"sim-user-{prefix}-{index:02d}",
+            "name": name,
+            "profile_type": profile_type,
+        })
 
 _CATEGORY_CACHE: dict[str, list[ProductModel]] = {}
 _ALL_PRODUCTS_CACHE: list[ProductModel] | None = None
@@ -169,18 +166,17 @@ def get_products_by_category(db, category: str) -> list[ProductModel]:
     if category in _CATEGORY_CACHE:
         return _CATEGORY_CACHE[category]
 
-    statement = (
-        select(ProductModel)
-        .where(ProductModel.category == category)
-        .where(ProductModel.in_stock.is_(True))
-        .order_by(ProductModel.rating.desc(), ProductModel.review_count.desc())
-    )
+    statement = (select(ProductModel).where(
+        ProductModel.category == category).where(
+            ProductModel.in_stock.is_(True)).order_by(
+                ProductModel.rating.desc(), ProductModel.review_count.desc()))
     products = list(db.scalars(statement).all())
     _CATEGORY_CACHE[category] = products
 
+    # ✅ FIX: return estava DENTRO do for (bug de indentação original)
     for p in products:
         _PRODUCT_NAME_CACHE[p.id] = p.name
-        return products
+    return products  # ← fora do loop
 
 
 def _get_all_in_stock_products(db) -> list[ProductModel]:
@@ -188,11 +184,9 @@ def _get_all_in_stock_products(db) -> list[ProductModel]:
     if _ALL_PRODUCTS_CACHE is not None:
         return _ALL_PRODUCTS_CACHE
 
-    statement = (
-        select(ProductModel)
-        .where(ProductModel.in_stock.is_(True))
-        .order_by(ProductModel.rating.desc(), ProductModel.review_count.desc())
-    )
+    statement = (select(ProductModel).where(
+        ProductModel.in_stock.is_(True)).order_by(
+            ProductModel.rating.desc(), ProductModel.review_count.desc()))
     _ALL_PRODUCTS_CACHE = list(db.scalars(statement).all())
     return _ALL_PRODUCTS_CACHE
 
@@ -207,7 +201,7 @@ def _choose_product_from_pool(
         candidates = list(pool)
 
     if prefers_discounts:
-        discounted = [product for product in candidates if product.original_price is not None]
+        discounted = [p for p in candidates if p.original_price is not None]
         if discounted and random.random() < 0.8:
             candidates = discounted
 
@@ -224,30 +218,30 @@ def pick_products_for_session(
     prefers_discounts = bool(profile_config.get("prefers_discounts", False))
 
     available_categories = [
-        category
-        for category in category_weights
+        category for category in category_weights
         if get_products_by_category(db, category)
     ]
 
     if not available_categories:
-        available_categories = [product.category for product in _get_all_in_stock_products(db)]
+        available_categories = [
+            p.category for p in _get_all_in_stock_products(db)
+        ]
 
     selected: list[ProductModel] = []
     seen_ids: set[str] = set()
-
-    weights = [category_weights.get(category, 1.0) for category in available_categories]
+    weights = [category_weights.get(c, 1.0) for c in available_categories]
     attempts = 0
     max_attempts = max(n * 8, 12)
 
     while len(selected) < n and attempts < max_attempts:
         attempts += 1
-        category = random.choices(available_categories, weights=weights, k=1)[0]
+        category = random.choices(available_categories, weights=weights,
+                                  k=1)[0]
         pool = get_products_by_category(db, category)
         if not pool:
             pool = _get_all_in_stock_products(db)
         if not pool:
             break
-
         product = _choose_product_from_pool(pool, prefers_discounts, seen_ids)
         selected.append(product)
         seen_ids.add(product.id)
@@ -255,22 +249,12 @@ def pick_products_for_session(
     if len(selected) < n:
         fallback_pool = _get_all_in_stock_products(db)
         while len(selected) < n and fallback_pool:
-            product = _choose_product_from_pool(fallback_pool, prefers_discounts, seen_ids)
+            product = _choose_product_from_pool(fallback_pool,
+                                                prefers_discounts, seen_ids)
             selected.append(product)
             seen_ids.add(product.id)
 
     return selected[:n]
-
-
-def random_timestamp(days_ago_min: int, days_ago_max: int) -> str:
-    """Return a random ISO timestamp in the requested date range."""
-    if days_ago_min > days_ago_max:
-        days_ago_min, days_ago_max = days_ago_max, days_ago_min
-
-    days_ago = random.randint(days_ago_min, days_ago_max)
-    seconds = random.randint(0, 24 * 60 * 60 - 1)
-    timestamp = datetime.utcnow() - timedelta(days=days_ago, seconds=seconds)
-    return timestamp.isoformat()
 
 
 def _build_event(
@@ -299,55 +283,49 @@ def simulate_session(
     dry_run: bool = False,
 ) -> list[EventModel]:
     """Simulate one browsing session for a user."""
-
     session_id = str(uuid.uuid4())
     views_min, views_max = profile_config["views_per_session"]
     num_products = random.randint(views_min, views_max)
     base_timestamp = datetime.fromisoformat(session_timestamp_base)
-    products = pick_products_for_session(
-        db,
-        profile_config,
-        num_products,
-    )
+    products = pick_products_for_session(db, profile_config, num_products)
     events: list[EventModel] = []
     current_time = base_timestamp
 
     for product in products:
         view_time = current_time + timedelta(seconds=random.randint(0, 30))
-        events.append(_build_event(user, session_id, product.id, "view", view_time))
+        events.append(
+            _build_event(user, session_id, product.id, "view", view_time))
 
         last_time = view_time
         clicked = False
         if random.random() < 0.70:
             click_time = view_time + timedelta(seconds=2)
-            events.append(_build_event(user, session_id, product.id, "click", click_time))
+            events.append(
+                _build_event(user, session_id, product.id, "click",
+                             click_time))
             last_time = click_time
             clicked = True
 
         if clicked and random.random() < profile_config["cart_rate"]:
             add_time = last_time + timedelta(seconds=5)
             events.append(
-                _build_event(user, session_id, product.id, "add_to_cart", add_time)
-            )
+                _build_event(user, session_id, product.id, "add_to_cart",
+                             add_time))
             last_time = add_time
 
             if random.random() < profile_config["purchase_rate"]:
-                purchase_time = add_time + timedelta(seconds=random.randint(30, 120))
+                purchase_time = add_time + timedelta(
+                    seconds=random.randint(30, 120))
                 events.append(
-                    _build_event(user, session_id, product.id, "purchase", purchase_time)
-                )
+                    _build_event(user, session_id, product.id, "purchase",
+                                 purchase_time))
                 last_time = purchase_time
             elif random.random() < 0.30:
-                remove_time = add_time + timedelta(seconds=random.randint(20, 60))
+                remove_time = add_time + timedelta(
+                    seconds=random.randint(20, 60))
                 events.append(
-                    _build_event(
-                        user,
-                        session_id,
-                        product.id,
-                        "remove_from_cart",
-                        remove_time,
-                    )
-                )
+                    _build_event(user, session_id, product.id,
+                                 "remove_from_cart", remove_time))
                 last_time = remove_time
 
         current_time = last_time + timedelta(seconds=random.randint(10, 30))
@@ -365,23 +343,24 @@ def _simulate_live_events(
     base_timestamp = datetime.utcnow()
 
     view_time = base_timestamp
-    events: list[tuple[EventModel, ProductModel]] = [
-        (_build_event(user, session_id, product.id, "view", view_time), product)
-    ]
+    events: list[tuple[EventModel,
+                       ProductModel]] = [(_build_event(user, session_id,
+                                                       product.id, "view",
+                                                       view_time), product)]
 
     last_time = view_time
     if random.random() < 0.70:
         click_time = view_time + timedelta(seconds=2)
-        events.append((_build_event(user, session_id, product.id, "click", click_time), product))
+        events.append((_build_event(user, session_id, product.id, "click",
+                                    click_time), product))
         last_time = click_time
 
     if random.random() < profile_config["cart_rate"] and len(events) < 3:
         add_time = last_time + timedelta(seconds=5)
-        events.append(
-            (_build_event(user, session_id, product.id, "add_to_cart", add_time), product)
-        )
+        events.append((_build_event(user, session_id, product.id,
+                                    "add_to_cart", add_time), product))
 
-    return events[: random.randint(1, min(3, len(events)))], product.id
+    return events[:random.randint(1, min(3, len(events)))], product.id
 
 
 def run_batch_simulation(
@@ -393,55 +372,58 @@ def run_batch_simulation(
 ) -> int:
     """Generate historical events for all simulated users."""
     total_events = 0
+    # ✅ Modo demo: timestamps atuais para aparecer no feed ao vivo
+    demo_mode = delay > 0
 
     if clear_existing:
-        result = db.execute(
-            delete(EventModel).where(EventModel.user_id.like("sim-user-%"))
-        )
+        db.execute(
+            delete(EventModel).where(EventModel.user_id.like("sim-user-%")))
         db.commit()
         if verbose:
             print("🗑️  Eventos simulados anteriores removidos.")
-        _ = result.rowcount
 
     for index, user in enumerate(users, start=1):
         profile_config = PROFILE_CONFIGS[user["profile_type"]]
         session_count = random.randint(*profile_config["sessions_range"])
-        session_times = sorted(
-            datetime.utcnow() - timedelta(days=random.uniform(1, 30))
-            for _ in range(session_count)
-        )
+        session_times = sorted(datetime.utcnow() -
+                               timedelta(days=random.uniform(1, 30))
+                               for _ in range(session_count))
 
         user_events = 0
         for session_time in session_times:
+            # ✅ Demo mode: usa timestamp atual para aparecer no live feed
+            effective_time = datetime.utcnow() if demo_mode else session_time
+
             session_events = simulate_session(
                 db,
                 user,
                 profile_config,
-                session_time.isoformat(),
+                effective_time.isoformat(),
             )
             db.add_all(session_events)
             user_events += len(session_events)
             total_events += len(session_events)
 
-            if verbose and delay > 0:
-                        for event in session_events:
-                            product_name = _PRODUCT_NAME_CACHE.get(
-                                event.product_id, event.product_id
-                            )
-                            emoji = {
-                                "view": "👁 ",
-                                "click": "🖱 ",
-                                "add_to_cart": "🛒",
-                                "purchase": "💰",
-                                "remove_from_cart": "❌",
-                            }.get(event.event_type, "⚡")
-                            print(
-                                f"  {emoji} {event.event_type:<20}"
-                                f" → {product_name[:35]}"
-                            )
-                            time.sleep(delay)
+            # ✅ Demo mode: mostra cada evento com delay e faz commit imediato
+            if demo_mode:
+                db.commit()  # commit por sessão para aparecer no dashboard
+                for event in session_events:
+                    product_name = _PRODUCT_NAME_CACHE.get(
+                        event.product_id, event.product_id)
+                    emoji = {
+                        "view": "👁 ",
+                        "click": "🖱 ",
+                        "add_to_cart": "🛒",
+                        "purchase": "💰",
+                        "remove_from_cart": "❌",
+                    }.get(event.event_type, "⚡")
+                    print(
+                        f"  {emoji} {event.event_type:<20} → {product_name[:40]}"
+                    )
+                    time.sleep(delay)
 
-        if index % 10 == 0:
+        # ✅ Modo normal: commit a cada 10 usuários (performance)
+        if not demo_mode and index % 10 == 0:
             db.commit()
 
         if verbose:
@@ -469,12 +451,12 @@ def run_live_simulation(
             db.commit()
 
             for event, product in live_events:
-                timestamp = datetime.fromisoformat(event.timestamp).strftime("%H:%M:%S")
+                timestamp = datetime.fromisoformat(
+                    event.timestamp).strftime("%H:%M:%S")
                 user_number = user["id"].split("-")[-1]
                 print(
                     f"⚡ [{timestamp}] Usuário #{user_number} ({user['profile_type']}) "
-                    f"→ {event.event_type.upper()} → {product.name}"
-                )
+                    f"→ {event.event_type.upper()} → {product.name}")
 
             jitter = random.uniform(-0.5, 0.5)
             time.sleep(max(0.1, interval_seconds + jitter))
@@ -482,25 +464,34 @@ def run_live_simulation(
         print("\n⏹️  Simulação ao vivo encerrada.")
 
 
-def _print_header(mode: str) -> None:
-    print("🤖 Recomenda.AI — Simulação de Usuários")
-    if mode == "batch":
-        print("Modo: BATCH | Usuários: 50 | Período: últimos 30 dias")
-    else:
-        print("Modo: LIVE")
-
-
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Simulação de usuários da Recomenda.AI")
+    parser = argparse.ArgumentParser(
+        description="Simulação de usuários da Recomenda.AI")
     parser.add_argument("--mode", choices=["batch", "live"], default="batch")
     parser.add_argument("--clear", action="store_true")
     parser.add_argument("--interval", type=float, default=2.0)
     parser.add_argument("--verbose", action="store_true")
-    parser.add_argument("--delay", type=float, default=0.0, help="Delay em segundos entre eventos (0=instantâneo, 0.05=lento, 0.2=bem devagar)",)
+    parser.add_argument(
+        "--delay",
+        type=float,
+        default=0.0,
+        help=
+        "Delay em segundos entre eventos (0=instantâneo, 0.05=demo, 0.2=devagar)",
+    )
     args = parser.parse_args()
 
     init_db()
-    _print_header(args.mode)
+
+    print("🤖 Recomenda.AI — Simulação de Usuários")
+    if args.mode == "batch":
+        if args.delay > 0:
+            print(
+                f"Modo: DEMO VISUAL | Delay: {args.delay}s/evento | Timestamps: agora"
+            )
+        else:
+            print("Modo: BATCH | Usuários: 50 | Período: últimos 30 dias")
+    else:
+        print(f"Modo: LIVE | Intervalo: {args.interval}s")
 
     with SessionLocal() as db:
         if args.mode == "batch":
@@ -516,9 +507,11 @@ def main() -> None:
             print(f"✅ Simulação concluída em {elapsed:.1f}s")
             print(f"📊 Total de eventos gerados: {total_events}")
             print(f"👥 Usuários simulados: {len(SIMULATED_USERS)}")
-            print("🔄 Agora rode o servidor e veja as recomendações melhorarem!")
+            print(
+                "🔄 Agora rode o servidor e veja as recomendações melhorarem!")
         else:
-            print(f"Gerando eventos a cada {args.interval}s | Ctrl+C para parar")
+            print(
+                f"Gerando eventos a cada {args.interval}s | Ctrl+C para parar")
             run_live_simulation(db, args.interval)
 
 

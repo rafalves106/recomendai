@@ -358,10 +358,13 @@ export interface SimulatedUser {
   favorite_category: string | null;
 }
 
-export async function triggerBatchSimulation(clear = false): Promise<void> {
+export async function triggerBatchSimulation(
+  clear = false,
+  delay = 0.05,
+): Promise<void> {
   try {
     await apiClient.post(`/api/simulation/batch`, null, {
-      params: { clear },
+      params: { clear, delay },
     });
   } catch (error) {
     console.error("Failed to trigger batch simulation", error);

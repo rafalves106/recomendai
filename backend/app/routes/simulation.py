@@ -60,15 +60,28 @@ def run_batch_bg(clear: bool) -> None:
 
 
 @router.post("/batch")
-def start_batch_simulation(
-    background_tasks: BackgroundTasks,
-    clear: bool = False,
+def trigger_batch(
+  background_tasks: BackgroundTasks,
+  clear: bool = False,
+  delay: float = 0.05,      # ← adiciona (default já é 0.05 = modo demo)
+  db: Session = Depends(get_db),
 ) -> dict[str, str]:
-    background_tasks.add_task(run_batch_bg, clear)
-    return {
-        "status": "started",
-        "message": "Simulação batch iniciada em background",
-    }
+  def run_batch_bg() -> None:
+      try:
+          from scripts.simulate_users import SIMULATED_USERS, run_batch_simulation
+          with SessionLocal() as bg_db:
+              run_batch_simulation(
+                  bg_db,
+                  SIMULATED_USERS,
+                  clear_existing=clear,
+                  verbose=True,
+                  delay=delay,    # ← passa o delay
+              )
+      except Exception as exc:
+          print(f"[simulation] erro no background: {exc}")
+
+  background_tasks.add_task(run_batch_bg)
+  return {"status": "started", "message": f"Simulação iniciada (delay={delay}s)"}
 
 
 @router.get("/status")
