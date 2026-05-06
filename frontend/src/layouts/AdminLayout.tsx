@@ -57,6 +57,11 @@ export function AdminLayout() {
             );
           })}
         </nav>
+
+        <div className="border-t border-slate-800 px-4 py-4">
+          <p className="text-xs text-slate-600">Recomenda.AI v1.0</p>
+          <p className="text-xs text-slate-600">Motor Híbrido de IA</p>
+        </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col bg-slate-950">

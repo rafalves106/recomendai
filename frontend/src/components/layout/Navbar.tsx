@@ -104,7 +104,12 @@ export function Navbar() {
 
             <button
               type="button"
-              onClick={() => setIsCartOpen(true)}
+              onClick={() => {
+                setIsCartOpen(true);
+                if (totalItems > 0) {
+                  navigate("/carrinho");
+                }
+              }}
               className="relative inline-flex items-center rounded-full border border-slate-700 bg-slate-800 p-3 text-slate-100 transition hover:border-indigo-500"
             >
               <ShoppingCart className="h-4 w-4" />
@@ -128,7 +133,12 @@ export function Navbar() {
 
             <button
               type="button"
-              onClick={() => setIsCartOpen(true)}
+              onClick={() => {
+                setIsCartOpen(true);
+                if (totalItems > 0) {
+                  navigate("/carrinho");
+                }
+              }}
               className="relative rounded-full border border-slate-700 bg-slate-800 p-3 text-slate-100"
               aria-label="Abrir carrinho"
             >

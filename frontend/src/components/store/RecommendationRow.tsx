@@ -72,17 +72,22 @@ export function RecommendationRow({
           ))}
         </div>
       ) : (
-        <div className="flex gap-4 overflow-x-auto pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {section.recommendations.map((recommendation) => (
-            <ProductCard
-              key={recommendation.product.id}
-              product={recommendation.product}
-              showRecommendationBadge
-              recommendationReason={recommendation.reason}
-              className="min-w-[220px] flex-shrink-0"
-            />
-          ))}
-        </div>
+        <>
+          <div className="flex gap-4 overflow-x-auto pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {section.recommendations.map((recommendation) => (
+              <ProductCard
+                key={recommendation.product.id}
+                product={recommendation.product}
+                showRecommendationBadge
+                recommendationReason={recommendation.reason}
+                className="min-w-[220px] flex-shrink-0"
+              />
+            ))}
+          </div>
+          <p className="mt-2 pr-4 text-right text-xs text-slate-600">
+            ✨ Recomendações geradas pelo motor de IA Recomenda.AI
+          </p>
+        </>
       )}
     </section>
   );

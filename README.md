@@ -73,6 +73,68 @@ Antes de começar, certifique-se de ter instalado:
 
 ---
 
+## 🎬 Demonstração
+
+Este projeto inclui um vídeo de demonstração mostrando o sistema funcionando de ponta a ponta, desde a navegação na loja até o dashboard de analytics.
+
+O vídeo cobre:
+
+- Navegação pela loja virtual com recomendações em tempo real
+- Simulação de 50 usuários com 5 perfis comportamentais diferentes
+- Dashboard administrativo com métricas e análises em tempo real
+- Motor de IA híbrido em ação
+
+---
+
+## 🚀 Preparação para Demo
+
+### Passo 1: Clone e configure o projeto
+
+Siga as instruções de instalação abaixo.
+
+### Passo 2: Popule o banco com dados simulados
+
+```bash
+cd backend
+source venv/bin/activate    # Mac/Linux
+
+python scripts/seed_database.py
+python scripts/simulate_users.py --mode batch --verbose
+```
+
+### Passo 3: Inicie os servidores
+
+**Terminal 1 (Backend):**
+
+```bash
+cd backend
+source venv/bin/activate    # Mac/Linux
+uvicorn app.main:app --reload --port 8000
+```
+
+**Terminal 2 (Frontend):**
+
+```bash
+cd frontend
+npm run dev
+```
+
+**Terminal 3 (Simulação ao vivo — opcional):**
+
+```bash
+cd backend
+source venv/bin/activate    # Mac/Linux
+python scripts/simulate_users.py --mode live --interval 2
+```
+
+### Passo 4: Acesse
+
+- **Loja:** http://localhost:5173
+- **Dashboard Admin:** http://localhost:5173/admin
+- **API Docs:** http://localhost:8000/docs
+
+---
+
 ## ⚙️ Instalação
 
 ### 1. Clone o repositório
@@ -206,23 +268,71 @@ GET	/analytics/events/live	Feed de eventos em tempo real
 
     📚 Documentação interativa completa disponível em http://localhost:8000/docs (Swagger UI)
 
-🧠 Como Funciona o Motor de Recomendação
+## 🧠 Arquitetura do Motor de IA
 
-O Recomenda.AI utiliza uma abordagem híbrida em 3 camadas:
+### Abordagem Híbrida em 3 Camadas
 
-1. POPULARIDADE (fallback)
- └─ Para novos usuários sem histórico
- └─ Mostra os produtos mais vistos/comprados globalmente
+O Recomenda.AI utiliza uma estratégia híbrida que combina múltiplas técnicas de recomendação:
 
-2. COOCORRÊNCIA ITEM-ITEM
- └─ "Quem viu/comprou X também viu/comprou Y"
- └─ Calculado a partir de sessões compartilhadas
+```
 
-3. PERFIL DO USUÁRIO
- └─ Detecta categorias preferidas por frequência de eventos
- └─ Filtra e ordena produtos não vistos nessas categorias
+┌─────────────────────────────────────────────────┐
+│ ENTRADA: Comportamento do Usuário │
+│ (visualizações, cliques, adições ao carrinho) │
+└────────────────────┬────────────────────────────┘
+│
+┌───────────┼───────────┐
+▼ ▼ ▼
+┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+│ CAMADA 1 │ │ CAMADA 2 │ │ CAMADA 3 │
+│ Popular. │ │ Coocorrência │ │ Perfil │
+│ (20%) │ │ (40%) │ │ (40%) │
+│ │ │ │ │ │
+│ Top Global │ │ Quem viu X │ │ Categorias │
+│ Produtos │ │ também viu Y │ │ Preferidas │
+│ │ │ │ │ │
+│ (fallback) │ │ (sessões) │ │ (histórico) │
+└──────┬───────┘ └──────┬───────┘ └──────┬───────┘
+│ │ │
+└────────────────┼────────────────┘
+▼
+┌──────────────────────────┐
+│ SCORE FINAL (Híbrido) │
+│ = (Cooc × 40%) + │
+│ (Perfil × 40%) + │
+│ (Popular × 20%) │
+└──────────────────────────┘
+│
+▼
+┌──────────────────────────┐
+│ SAÍDA: Recomendações │
+│ Personalizadas Ordenadas │
+└──────────────────────────┘
 
-O motor seleciona automaticamente a melhor estratégia baseado no histórico disponível do usuário.
+```
+
+### Camadas Detalhadas
+
+#### 1️⃣ Popularidade (20% do score)
+- **O quê:** Produtos com maior volume de interações globais
+- **Quando:** Primária para novos usuários, fallback sempre ativo
+- **Benefício:** Garante cobertura e relevância geral
+
+#### 2️⃣ Coocorrência Item-Item (40% do score)
+- **O quê:** "Quem viu/comprou X também viu/comprou Y"
+- **Como:** Análise de padrões compartilhados dentro de sessões
+- **Benefício:** Descobre relacionamentos ocultos entre produtos
+
+#### 3️⃣ Perfil do Usuário (40% do score)
+- **O quê:** Categorias favoritas detectadas automaticamente
+- **Como:** Frequência de eventos por categoria no histórico
+- **Benefício:** Personalização verdadeira ao longo do tempo
+
+### Resultado
+
+O motor seleciona automaticamente a melhor estratégia baseado no histórico disponível do usuário, garantindo relevância desde o primeiro evento até a jornada completa.
+
+Em um SaaS real, os pesos (20%-40%-40%) seriam ajustáveis por cliente e otimizáveis via A/B testing.
 
 
 📄 Licença

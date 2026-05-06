@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import { AdminLayout } from "./layouts/AdminLayout";
 import { StoreLayout } from "./layouts/StoreLayout";
 import { Loader2 } from "lucide-react";
@@ -17,6 +17,7 @@ const AdminRecommendationsPage = lazy(
 const AdminProductsPage = lazy(() => import("./pages/AdminProductsPage"));
 const AdminUsersPage = lazy(() => import("./pages/AdminUsersPage"));
 const AdminSimulationPage = lazy(() => import("./pages/AdminSimulationPage"));
+const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 
 function LoadingFallback() {
   return (
@@ -55,7 +56,7 @@ function App() {
           <Route path="/admin/simulacao" element={<AdminSimulationPage />} />
         </Route>
 
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Suspense>
   );

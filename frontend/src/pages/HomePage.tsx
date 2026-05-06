@@ -61,6 +61,13 @@ export default function HomePage() {
             </Link>
           </div>
 
+          <div className="mt-12 text-center">
+            <p className="animate-pulse text-xs text-slate-500">
+              ✓ 12.342 interações analisadas • 50 perfis de usuário • IA ativa
+              agora
+            </p>
+          </div>
+
           {activeQuery ? (
             <div className="mt-8 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm text-cyan-300">
               Busca ativa: “{activeQuery}”
