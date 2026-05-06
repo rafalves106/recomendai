@@ -280,4 +280,82 @@ export async function fetchCategoryRecommendations(
   }
 }
 
+// ─── Simulação ───────────────────────────────────────────────────────────────
+
+export interface SimulationStatus {
+  total_events: number;
+  simulated_events: number;
+  real_events: number;
+  events_by_type: Record<string, number>;
+  unique_simulated_users: number;
+  most_viewed_product: {
+    product_id: string;
+    product_name: string;
+    views: number;
+  } | null;
+}
+
+export interface SimulatedUser {
+  id: string;
+  name: string;
+  profile_type: string;
+  total_events: number;
+  total_purchases: number;
+  favorite_category: string | null;
+}
+
+export async function triggerBatchSimulation(clear = false): Promise<void> {
+  try {
+    await apiClient.post(`/api/simulation/batch`, null, {
+      params: { clear },
+    });
+  } catch (error) {
+    console.error("Failed to trigger batch simulation", error);
+    throw error;
+  }
+}
+
+export async function getSimulationStatus(): Promise<SimulationStatus> {
+  try {
+    const response = await apiClient.get<SimulationStatus>(
+      `/api/simulation/status`,
+    );
+    return response.data;
+  } catch (error) {
+    console.warn("API unavailable for simulation status", error);
+    return {
+      total_events: 0,
+      simulated_events: 0,
+      real_events: 0,
+      events_by_type: {},
+      unique_simulated_users: 0,
+      most_viewed_product: null,
+    };
+  }
+}
+
+export async function clearSimulatedEvents(): Promise<number> {
+  try {
+    const response = await apiClient.delete<{ deleted: number }>(
+      `/api/simulation/clear`,
+    );
+    return response.data.deleted;
+  } catch (error) {
+    console.error("Failed to clear simulated events", error);
+    throw error;
+  }
+}
+
+export async function getSimulatedUsers(): Promise<SimulatedUser[]> {
+  try {
+    const response = await apiClient.get<SimulatedUser[]>(
+      `/api/simulation/users`,
+    );
+    return response.data;
+  } catch (error) {
+    console.warn("API unavailable for simulated users", error);
+    return [];
+  }
+}
+
 export default apiClient;

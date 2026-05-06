@@ -11,6 +11,7 @@ from app.database import DATABASE_URL, SessionLocal, init_db
 from app.routes.events import router as events_router
 from app.routes.products import router as products_router
 from app.routes.recommendations import router as recommendations_router
+from app.routes.simulation import router as simulation_router
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 load_dotenv(os.path.join(BASE_DIR, ".env"))
@@ -49,6 +50,7 @@ def on_startup() -> None:
 app.include_router(products_router, prefix="/api")
 app.include_router(events_router, prefix="/api")
 app.include_router(recommendations_router, prefix="/api")
+app.include_router(simulation_router, prefix="/api")
 
 
 @app.get("/")
