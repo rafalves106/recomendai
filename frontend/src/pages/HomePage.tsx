@@ -145,7 +145,8 @@ export default function HomePage() {
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {CATEGORIES.map((category) => {
             const Icon =
-              categoryIcons[category.icon as keyof typeof categoryIcons];
+              categoryIcons[category.icon as keyof typeof categoryIcons] ??
+              Package;
 
             return (
               <Link

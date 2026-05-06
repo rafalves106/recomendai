@@ -324,7 +324,7 @@ export const PRODUCTS: Product[] = [
     originalPrice: 649.9,
     category: "sports",
     imageUrl:
-      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1539185441755-769473a23570?w=400&h=400&fit=crop&q=80",
     tags: ["corrida", "amortecimento", "leve", "performance"],
     rating: 4.9,
     reviewCount: 623,
