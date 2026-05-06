@@ -1,0 +1,1 @@
+# Recomenda.AI — Pydantic Schemas
