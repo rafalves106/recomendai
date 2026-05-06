@@ -38,7 +38,7 @@ function App() {
         <Route element={<StoreLayout />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/produtos" element={<ProductsPage />} />
-          <Route path="/produto/:id" element={<ProductDetailPage />} />
+          <Route path="/produto/:productId" element={<ProductDetailPage />} />
           <Route path="/carrinho" element={<CartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/confirmacao" element={<ConfirmationPage />} />

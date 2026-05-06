@@ -12,21 +12,34 @@ import {
 import type { FormEvent } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import useStore from "../../store";
+import { trackSearch } from "../../services/events";
 
 export function Navbar() {
   const navigate = useNavigate();
   const totalItems = useStore((state) => state.getTotalItems());
   const cartItems = useStore((state) => state.items);
-  const query = useStore((state) => state.query);
-  const setQuery = useStore((state) => state.setQuery);
-  const clearSearch = useStore((state) => state.clearSearch);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
+
+  const handleSearch = async () => {
+    if (searchValue.trim()) {
+      await trackSearch(searchValue.trim());
+      navigate(`/produtos?q=${encodeURIComponent(searchValue.trim())}`);
+      setSearchValue("");
+    }
+  };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    navigate(`/produtos?q=${encodeURIComponent(query.trim())}`);
+    handleSearch();
     setIsMobileSearchOpen(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleSearch();
+    }
   };
 
   return (
@@ -41,17 +54,26 @@ export function Navbar() {
 
           <form
             onSubmit={handleSubmit}
-            className="hidden w-full max-w-md flex-1 items-center md:flex"
+            className="hidden w-full max-w-md flex-1 items-center gap-2 md:flex"
           >
             <div className="relative w-full">
               <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
+                onKeyDown={handleKeyDown}
                 placeholder="Buscar produtos..."
                 className="w-full rounded-full border border-slate-700 bg-slate-800 py-3 pl-11 pr-4 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
               />
             </div>
+            <button
+              type="button"
+              onClick={handleSearch}
+              className="rounded-full border border-slate-700 bg-slate-800 p-3 text-slate-100 hover:border-indigo-500 transition"
+              aria-label="Buscar"
+            >
+              <Search className="h-4 w-4" />
+            </button>
           </form>
 
           <div className="hidden items-center gap-4 md:flex">
@@ -135,8 +157,9 @@ export function Navbar() {
               <div className="relative flex-1">
                 <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  onKeyDown={handleKeyDown}
                   placeholder="Buscar produtos..."
                   className="w-full rounded-full border border-slate-700 bg-slate-800 py-3 pl-11 pr-4 text-sm text-slate-100 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
                 />
@@ -144,7 +167,7 @@ export function Navbar() {
               <button
                 type="button"
                 onClick={() => {
-                  clearSearch();
+                  setSearchValue("");
                   setIsMobileSearchOpen(false);
                 }}
                 className="rounded-full border border-slate-700 bg-slate-800 p-3 text-slate-100"
@@ -215,6 +238,42 @@ export function Navbar() {
                 </div>
               )}
             </div>
+            {cartItems.length > 0 && (
+              <div className="mt-6 space-y-3 border-t border-slate-800 pt-6">
+                {/* Total */}
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-400">Total</span>
+                  <span className="font-bold text-white">
+                    R${" "}
+                    {cartItems
+                      .reduce(
+                        (acc, item) => acc + item.product.price * item.quantity,
+                        0,
+                      )
+                      .toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+
+                {/* Botão: Ver carrinho completo */}
+                <Link
+                  to="/carrinho"
+                  onClick={() => setIsCartOpen(false)}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                >
+                  Ver Carrinho Completo
+                </Link>
+
+                {/* Botão: Finalizar compra direto */}
+                <Link
+                  to="/checkout"
+                  onClick={() => setIsCartOpen(false)}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white transition hover:bg-indigo-500"
+                >
+                  Finalizar Compra
+                  <ChevronRight className="h-4 w-4" />
+                </Link>
+              </div>
+            )}
           </aside>
         </div>
       ) : null}
