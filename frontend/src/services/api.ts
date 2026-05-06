@@ -165,4 +165,119 @@ export async function fetchUserEvents(
   }
 }
 
+// ─── Recomendações ───────────────────────────────────────────────────────────
+
+export interface RecommendationItem {
+  product: Product;
+  score: number;
+  strategy: "popular" | "collaborative" | "item_similarity" | "hybrid";
+  reason: string;
+}
+
+function mapRecommendation(raw: Record<string, unknown>): RecommendationItem {
+  return {
+    product: mapProduct(raw),
+    score: raw.score as number,
+    strategy: raw.strategy as RecommendationItem["strategy"],
+    reason: raw.reason as string,
+  };
+}
+
+export async function fetchPopularRecommendations(
+  limit = 10,
+): Promise<RecommendationItem[]> {
+  try {
+    const response = await apiClient.get<Record<string, unknown>[]>(
+      "/api/recommendations/popular",
+      { params: { limit } },
+    );
+    return response.data.map(mapRecommendation);
+  } catch (error) {
+    console.warn("API unavailable, using fallback data", error);
+    return PRODUCTS.slice(0, limit).map((product) => ({
+      product,
+      score: 1,
+      strategy: "popular" as const,
+      reason: "Popular na loja",
+    }));
+  }
+}
+
+export async function fetchUserRecommendations(
+  userId: string,
+  options?: { limit?: number; productId?: string },
+): Promise<RecommendationItem[]> {
+  try {
+    const params: Record<string, unknown> = { limit: options?.limit ?? 10 };
+    if (options?.productId) {
+      params.product_id = options.productId;
+    }
+
+    const response = await apiClient.get<Record<string, unknown>[]>(
+      `/api/recommendations/user/${userId}`,
+      { params },
+    );
+    return response.data.map(mapRecommendation);
+  } catch (error) {
+    console.warn("API unavailable, using fallback data", error);
+    return PRODUCTS.slice(0, options?.limit ?? 10).map((product) => ({
+      product,
+      score: 1,
+      strategy: "popular" as const,
+      reason: "Popular na loja",
+    }));
+  }
+}
+
+export async function fetchItemRecommendations(
+  productId: string,
+  limit = 8,
+): Promise<RecommendationItem[]> {
+  try {
+    const response = await apiClient.get<Record<string, unknown>[]>(
+      `/api/recommendations/item/${productId}`,
+      { params: { limit } },
+    );
+    return response.data.map(mapRecommendation);
+  } catch (error) {
+    console.warn("API unavailable, using fallback data", error);
+    return PRODUCTS.filter((p) => p.id !== productId)
+      .slice(0, limit)
+      .map((product) => ({
+        product,
+        score: 1,
+        strategy: "collaborative" as const,
+        reason: "Também muito buscado na loja",
+      }));
+  }
+}
+
+export async function fetchCategoryRecommendations(
+  categoryId: string,
+  options?: { limit?: number; excludeId?: string },
+): Promise<RecommendationItem[]> {
+  try {
+    const params: Record<string, unknown> = { limit: options?.limit ?? 10 };
+    if (options?.excludeId) {
+      params.exclude_id = options.excludeId;
+    }
+
+    const response = await apiClient.get<Record<string, unknown>[]>(
+      `/api/recommendations/category/${categoryId}`,
+      { params },
+    );
+    return response.data.map(mapRecommendation);
+  } catch (error) {
+    console.warn("API unavailable, using fallback data", error);
+    return PRODUCTS.filter((p) => p.category === categoryId)
+      .slice(0, options?.limit ?? 10)
+      .map((product) => ({
+        product,
+        score: 1,
+        strategy: "popular" as const,
+        reason: "Popular na loja",
+      }));
+  }
+}
+
 export default apiClient;

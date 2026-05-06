@@ -9,10 +9,10 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { CATEGORIES, PRODUCTS } from "../data/products";
-import type { Recommendation, RecommendationSection } from "../types";
 import { ProductCard } from "../components/store/ProductCard";
 import { RecommendationRow } from "../components/store/RecommendationRow";
 import useStore from "../store";
+import { usePersonalizedRecommendations } from "../hooks/useRecommendations";
 
 const categoryIcons = {
   Cpu,
@@ -22,43 +22,10 @@ const categoryIcons = {
   BookOpen,
 };
 
-function buildRecommendationSection(
-  title: string,
-  subtitle: string,
-  strategy: RecommendationSection["strategy"],
-  products = PRODUCTS,
-  reason: string,
-): RecommendationSection {
-  return {
-    title,
-    subtitle,
-    strategy,
-    recommendations: products.map((product, index) => ({
-      product,
-      score: Number((0.98 - index * 0.03).toFixed(2)),
-      strategy,
-      reason,
-    })) as Recommendation[],
-  };
-}
-
 export default function HomePage() {
   const activeQuery = useStore((state) => state.query);
   const featuredProducts = PRODUCTS.slice(0, 8);
-  const personalizedSection = buildRecommendationSection(
-    "Recomendados para Você",
-    "Baseado no seu histórico de navegação",
-    "hybrid",
-    PRODUCTS.slice(8, 13),
-    "Baseado no seu histórico de navegação",
-  );
-  const popularSection = buildRecommendationSection(
-    "Mais Populares Agora",
-    "Muito comprado nas últimas horas",
-    "popular",
-    PRODUCTS.slice(13, 18),
-    "Muito comprado nas últimas horas",
-  );
+  const { sections, isLoading: recsLoading } = usePersonalizedRecommendations();
 
   return (
     <div className="space-y-20 pb-20">
@@ -177,8 +144,13 @@ export default function HomePage() {
       </section>
 
       <div className="space-y-2">
-        <RecommendationRow section={personalizedSection} />
-        <RecommendationRow section={popularSection} />
+        {sections.map((section) => (
+          <RecommendationRow
+            key={section.title}
+            section={section}
+            isLoading={recsLoading}
+          />
+        ))}
       </div>
 
       <section className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">

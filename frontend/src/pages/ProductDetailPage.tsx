@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import {
   Star,
   ShoppingCart,
@@ -9,23 +9,18 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { useProduct } from "../hooks/useProduct";
-import { useProducts } from "../hooks/useProducts";
 import { useStore } from "../store";
 import { RecommendationRow } from "../components/store/RecommendationRow";
 import { trackView, trackAddToCart } from "../services/events";
 import { CATEGORIES } from "../data/products";
-import type { RecommendationSection } from "../types";
+import { useItemRecommendations } from "../hooks/useRecommendations";
 
 export function ProductDetailPage() {
   const { productId } = useParams<{ productId: string }>();
   const { product, isLoading, error } = useProduct(productId);
   const { isInCart, addToCart } = useStore();
-
-  // Fetch related products
-  const { products: relatedProducts } = useProducts({
-    category: product?.category,
-    limit: 10,
-  });
+  const { sections: recSections, isLoading: recLoading } =
+    useItemRecommendations(product?.id);
 
   // Track view on mount
   useEffect(() => {
@@ -40,56 +35,6 @@ export function ProductDetailPage() {
       await trackAddToCart(product.id);
     }
   };
-
-  // Build related products section
-  const relatedSection: RecommendationSection | null = useMemo(() => {
-    if (!product || relatedProducts.length === 0) return null;
-
-    const filtered = relatedProducts
-      .filter((p) => p.id !== product.id)
-      .slice(0, 5);
-    if (filtered.length === 0) return null;
-
-    const categoryName =
-      CATEGORIES.find((c) => c.id === product.category)?.name ||
-      product.category;
-
-    return {
-      title: "Quem viu isso também viu",
-      subtitle: "Produtos relacionados da mesma categoria",
-      strategy: "item_similarity",
-      recommendations: filtered.map((p, idx) => ({
-        product: p,
-        score: 0.85 - idx * 0.05,
-        strategy: "item_similarity" as const,
-        reason: `Mesma categoria: ${categoryName}`,
-      })),
-    };
-  }, [product, relatedProducts]);
-
-  // Build popular products section
-  const popularSection: RecommendationSection | null = useMemo(() => {
-    if (relatedProducts.length < 5) return null;
-
-    const popular = relatedProducts
-      .filter((p) => p.id !== product?.id)
-      .sort((a, b) => b.rating - a.rating)
-      .slice(0, 5);
-
-    if (popular.length === 0) return null;
-
-    return {
-      title: "Mais Populares na Loja",
-      subtitle: undefined,
-      strategy: "popular",
-      recommendations: popular.map((p) => ({
-        product: p,
-        score: p.rating / 5,
-        strategy: "popular" as const,
-        reason: "Mais avaliado pelos clientes",
-      })),
-    };
-  }, [product?.id, relatedProducts]);
 
   // Loading skeleton
   if (isLoading) {
@@ -296,17 +241,15 @@ export function ProductDetailPage() {
         </div>
 
         {/* Recommendation Sections */}
-        {relatedSection && (
-          <div className="mb-12">
-            <RecommendationRow section={relatedSection} isLoading={false} />
-          </div>
-        )}
-
-        {popularSection && (
-          <div>
-            <RecommendationRow section={popularSection} isLoading={false} />
-          </div>
-        )}
+        <div className="space-y-2">
+          {recSections.map((section) => (
+            <RecommendationRow
+              key={section.title}
+              section={section}
+              isLoading={recLoading}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
